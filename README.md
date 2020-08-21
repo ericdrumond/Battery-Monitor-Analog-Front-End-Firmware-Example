@@ -5,3 +5,7 @@ This library implements all basic functions from the Battery Monitor or Analog F
 The LL (low-level) driver library from ST was used on this project. 
 
 Note that this library is currently in testing phase and it's not on release version yet.
+
+
+
+Made by: Eric Drumond Rocha
