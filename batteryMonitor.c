@@ -20,7 +20,7 @@
 #include "stdlib.h"
 
 
-int32_t vgain_ad=10000, voff_ad=0;
+int32_t vgain_ad = 10000, voff_ad = 0;
 extern uint16_t var_count_sum;
 extern uint8_t flag_count_clb;
 /**
@@ -60,75 +60,68 @@ void calibrateVRef(ADC_TypeDef *ADCx, Battery_type *bat,Calibration_type *cal ){
 
 	toggleBits(REG_POWER_CTL, 2, BIT_POWERCTL_REFEN, BIT_POWERCTL_VCAMP);
 	delay_ms(10);
-	int32_t vdif_ad=0, i, v1, v2, aux_vref;
-	bat->vRef100 =0;
-	bat->vRef085 =0;
-	bat->vRef050 =0;
-	bat->vSS =0;
+	int32_t vdif_ad = 0, i, v1, v2, aux_vref;
+	bat->vRef100 = 0;
+	bat->vRef085 = 0;
+	bat->vRef050 = 0;
+	bat->vSS = 0;
 
 	/* Get vRef (3.00V) */
-	for(i=0;i<256;i++){
-		bat->vRef100 = bat->vRef100+ get_ADC12bits_channel(ADCx, ADCHAN_VREF);
+	for(i = 0; i < 256; i++){
+		bat->vRef100 = bat->vRef100 + get_ADC12bits_channel(ADCx, ADCHAN_VREF);
 		LL_IWDG_ReloadCounter(IWDG);
 	}
-	bat->vRef100= bat->vRef100 >>8;
+	bat->vRef100 = bat->vRef100 >> 8;
 
 	/* Get (0.85*vRef = 2.55V) from Vcout  */
 	request_VCout(VCOUT_VREF085);
 	delay_ms(2);
 	for(i=0;i<256;i++){
-		bat->vRef085 = bat->vRef085+ get_ADC12bits_channel(ADCx, ADCHAN_VCOUT);
+		bat->vRef085 = bat->vRef085 + get_ADC12bits_channel(ADCx, ADCHAN_VCOUT);
 		LL_IWDG_ReloadCounter(IWDG);
 	}
-	bat->vRef085= bat->vRef085 >>8;
+	bat->vRef085 = bat->vRef085 >> 8;
 
 	/* Get (0.50*vRef = 1.5V) from Vcout */
 	request_VCout(VCOUT_VREF05);
 	delay_ms(2);
-	for(i=0;i<256;i++){
-		bat->vRef050 = bat->vRef050+ get_ADC12bits_channel(ADCx, ADCHAN_VCOUT);
+	for(i = 0; i < 256; i++){
+		bat->vRef050 = bat->vRef050 + get_ADC12bits_channel(ADCx, ADCHAN_VCOUT);
 		LL_IWDG_ReloadCounter(IWDG);
 	}
-	bat->vRef050= bat->vRef050 >>8;
+	bat->vRef050 = bat->vRef050 >> 8;
 
 	/* Get Vss */
 	request_VCout(VCOUT_VSS);
 	delay_ms(2);
-	for(i=0;i<256;i++){
-		bat->vSS = bat->vSS+ get_ADC12bits_channel(ADCx, ADCHAN_VCOUT);
+	for(i = 0; i < 256; i++){
+		bat->vSS = bat->vSS + get_ADC12bits_channel(ADCx, ADCHAN_VCOUT);
 		LL_IWDG_ReloadCounter(IWDG);
 	}
-	bat->vSS= bat->vSS >>8;
+	bat->vSS = bat->vSS >> 8;
 
 	bat->vSS = get_ADC12bits_channel(ADCx, ADCHAN_VCOUT);
 
 	toggleBits(REG_POWER_CTL, 2, BIT_POWERCTL_REFEN, BIT_POWERCTL_VCAMP);
 
-//	vdif_ad = bat->vRef085 - bat->vRef050; //metodo 1: 0,25% de erro
-//	vgain_ad = (1302 * 10000) /vdif_ad;
-//	voff_ad = 1861*10000 - (vgain_ad * bat->vRef050);
-
-	if(cal->vrefGain_Corr > 0)
-	{
-		aux_vref=(1000+cal->vrefGain_Corr);
+	if(cal->vrefGain_Corr > 0) {
+		aux_vref = (1000 + cal->vrefGain_Corr);
 	}
-	else
-	{
-		aux_vref=(1000 - (uint32_t)(cal->vrefGain_Corr & 0b1111));
+	else {
+		aux_vref = (1000 - (uint32_t)(cal->vrefGain_Corr & 0b1111));
 	}
-	if(cal->vrefOffset_Corr > 0)
-	{
-		bat->vRef100 = (bat->vRef100*aux_vref) + (((uint32_t)(cal->vrefOffset_Corr)*5)/4);
+	
+	if(cal->vrefOffset_Corr > 0) {
+		bat->vRef100 = (bat->vRef100 * aux_vref) + (((uint32_t)(cal->vrefOffset_Corr) * 5) / 4);
 	}
-	else
-	{
-		bat->vRef100 = (bat->vRef100*aux_vref) - (((uint32_t)(cal->vrefOffset_Corr &0b11111)*5)/4);
+	else {
+		bat->vRef100 = (bat->vRef100 * aux_vref) - (((uint32_t)(cal->vrefOffset_Corr & 0b11111) * 5) / 4);
 	}
 
-	v1=(bat->vRef100 * 5);
-	v2=(bat->vRef100 * 85)/10;
+	v1 = (bat->vRef100 * 5);
+	v2 = (bat->vRef100 * 85) / 10;
 	vdif_ad = bat->vRef085 - bat->vRef050;
-	vgain_ad = (v2-v1) /vdif_ad;
+	vgain_ad = (v2 - v1) / vdif_ad;
 	voff_ad = v1 - (vgain_ad * bat->vRef050);
 }
 
@@ -334,36 +327,31 @@ uint32_t corrected_Voltage(uint8_t cellNumber, uint16_t ADC_Count, uint16_t vRef
 
 	//	vcn=ADC_Count;
 
-	if(cal.vrefGain_Corr > 0)
-	{
-		aux_vref=(1000+cal.vrefGain_Corr);
+	if(cal.vrefGain_Corr > 0) {
+		aux_vref = (1000 + cal.vrefGain_Corr);
 	}
-	else
-	{
-		aux_vref=(1000 - (uint32_t)(cal.vrefGain_Corr & 0b1111));
+	else {
+		aux_vref = (1000 - (uint32_t)(cal.vrefGain_Corr & 0b1111));
 	}
-	if(cal.vrefOffset_Corr > 0)
-	{
-		aux_vref = (vRef*aux_vref) + (((uint32_t)(cal.vrefOffset_Corr)*5)/4);
+	if(cal.vrefOffset_Corr > 0) {
+		aux_vref = (vRef * aux_vref) + (((uint32_t)(cal.vrefOffset_Corr) * 5) / 4);
 
 	}
-	else
-	{
-		aux_vref = (vRef*aux_vref) - (((uint32_t)(cal.vrefOffset_Corr &0b11111)*5)/4);
+	else {
+		aux_vref = (vRef * aux_vref) - (((uint32_t)(cal.vrefOffset_Corr & 0b11111) * 5) / 4);
 	}
 
-	vRef=(uint16_t) (aux_vref/1000);
-
+	vRef=(uint16_t) (aux_vref / 1000);
 
 	aux_adc = (int32_t) ADC_Count;
-	aux_adc = ((((((aux_adc*10000) + voff_ad)/10000) * vgain_ad)*3)/vRef)/10;
+	aux_adc = ((((((aux_adc * 10000) + voff_ad) / 10000) * vgain_ad) * 3) / vRef) / 10;
 	ADC_Count = (uint16_t) (aux_adc & 0xffff);
-	vcout=(uint32_t) aux_adc;
+	vcout = (uint32_t) aux_adc;
 	gc_vref = 1; //(1000 + (cal->vrefGain_Corr)) + (cal->vrefOffset_Corr / (vref_Nominal/1000);
 	oc_vcout = cal.vcOffset_Corr[cellNumber]; // mV
 	gc_vcout = cal.vcGain_Corr[cellNumber]; // 0.1%
 	g_vcout = (cal.REF_SEL == 1) ? 600 : 300;
-	vcn = (((vcout * gc_vref + oc_vcout) * ((1000 + gc_vcout)*1000)) / g_vcout)/1000;
+	vcn = (((vcout * gc_vref + oc_vcout) * ((1000 + gc_vcout) * 1000)) / g_vcout) / 1000;
 
 	return (uint16_t)vcn;
 }
@@ -486,8 +474,6 @@ uint32_t corrected_Temperature(Battery_type *bat, uint32_t ADC_Count){
 	uint32_t vRes = (vTerm*1000) / ((vtb - vTerm) / res);
 	uint16_t rTerm = (uint16_t) vRes;
 
-	//return vRes;
-
 	uint8_t searchIndex = 35, beginIndex = 0, endIndex = 70;
 	uint16_t binSearch = bat->tempTable[searchIndex];
 	uint16_t tolerance = rTerm/100;
@@ -548,9 +534,8 @@ void current_Measuring(ADC_TypeDef *ADCx, Battery_type *bat){
 	writeRegister(REG_CONFIG_1, INIT_REG_CONFIG_1 | BIT_CONFIG1_IAMPCAL);
 	/* Get corrected real current Measurement */
 //	bat->current = (uint16_t) corrected_Current(sensen_ADC, sensep_ADC);
-	if(flag_count_clb==0)
-	{
-	bat->current = corrected_Current(sensen_ADC, sensep_ADC);
+	if(flag_count_clb==0) {
+		bat->current = corrected_Current(sensen_ADC, sensep_ADC);
 	}
 	else{
 		var_count_sum= corrected_Current(sensen_ADC, sensep_ADC);
@@ -632,7 +617,7 @@ uint8_t calibrate_ADC(ADC_TypeDef *ADCx){
 
 //#pragma GCC push_options
 //#pragma GCC optimize (0)
-uint16_t get_ADC12bits_channel(ADC_TypeDef *ADCx, uint8_t channel){
+uint16_t get_ADC12bits_channel(ADC_TypeDef *ADCx, uint8_t channel) {
 
 	uint32_t measurement=0, i;
 
@@ -646,25 +631,22 @@ uint16_t get_ADC12bits_channel(ADC_TypeDef *ADCx, uint8_t channel){
 	/* Enables ADC peripheral */
 	LL_ADC_Enable(ADCx);
 	/* Waits for the ADC to be ready */
-	while (LL_ADC_IsActiveFlag_ADRDY(ADCx) == 0)
-	{
+	while (LL_ADC_IsActiveFlag_ADRDY(ADCx) == 0) {
 		/* Timeout implementation pending */
 
 	}
 	/* Start ADC Conversion */
 	LL_GPIO_SetOutputPin(LED_GPIO_Port, LED_Pin);
-	for(i=0;i<16;i++)
-	{
+	for(i=0;i<16;i++) {
 		LL_ADC_REG_StartConversion(ADCx);
 
 		/* Waits for End-of-Conversion flag to be active */
-		while ((ADCx->ISR & ADC_ISR_EOC) == 0)
-		{
+		while ((ADCx->ISR & ADC_ISR_EOC) == 0) {
 			/* Timeout implementation pending */
 		}
 
 		/* Stops the ADC Conversion if in continuous mode*/
-		if(LL_ADC_REG_GetContinuousMode(ADCx) == LL_ADC_REG_CONV_CONTINUOUS){
+		if(LL_ADC_REG_GetContinuousMode(ADCx) == LL_ADC_REG_CONV_CONTINUOUS) {
 			//LL_ADC_REG_StopConversion(ADCx);
 		}
 
@@ -683,22 +665,19 @@ uint16_t get_ADC12bits_channel(ADC_TypeDef *ADCx, uint8_t channel){
 	measurement = measurement >>4;
 	LL_GPIO_ResetOutputPin(LED_GPIO_Port, LED_Pin);
 	/* ensure that no conversion is ongoing */
-	if ((ADCx->CR & ADC_CR_ADSTART) != 0)
-	{
+	if ((ADCx->CR & ADC_CR_ADSTART) != 0) {
 		/* If there is ongoing conversion, stop it */
 		ADCx->CR |= ADC_CR_ADSTP;
 	}
 	/* Wait until ADSTP is reset by hardware i.e. conversion is stopped */
-	while ((ADCx->CR & ADC_CR_ADSTP) != 0) /* (3) */
-	{
+	while ((ADCx->CR & ADC_CR_ADSTP) != 0) {
 		/* Timeout implementation pending */
 	}
 	/* Disables ADC peripheral */
 	LL_ADC_Disable(ADCx);
 
 	/* Wait until the ADC is fully disabled */
-	while ((ADC1->CR & ADC_CR_ADEN) != 0)
-	{
+	while ((ADC1->CR & ADC_CR_ADEN) != 0) {
 		/* Timeout implementation pending */
 	}
 	/* Remove ADC channel from conversion sequence */
